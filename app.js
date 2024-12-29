@@ -15,7 +15,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: 'https://storeroomserver.vercel.app/',
+    origin: 'https://storeroomamu.netlify.app/',
     credentials: true,
   })
 );
