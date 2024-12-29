@@ -13,12 +13,14 @@ const db = new sqlite3.Database(dbPath);
 app.use(express.json());
 app.use(cookieParser());
 
-app.use(
-  cors({
-    origin: 'https://storeroomamu.netlify.app',
-    credentials: true,
-  })
-);
+// app.use(
+//   cors({
+//     origin: 'https://storeroomamu.netlify.app',
+//     credentials: true,
+//   })
+// );
+
+app.use(cors());
 
 db.serialize(() => {
   db.run(
@@ -63,7 +65,4 @@ app.use('/api', routes);
 const userRoutes = require('./routes/userRoutes');
 app.use('/users', userRoutes);
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+module.exports = app;
