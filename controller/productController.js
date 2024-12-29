@@ -1,39 +1,23 @@
-const sqlite3 = require('sqlite3').verbose();
+const Product = require('../models/Product');
 
+// Get All Products
 exports.getAllProducts = async (req, res) => {
-  // try {
-  //   const db = req.db;
-
-  //   db.all('SELECT * FROM products', [], (err, rows) => {
-  //     if (err) {
-  //       return res.status(500).json({ status: 'error', message: err.message });
-  //     }
-
-  //     res.status(200).json({ status: 'success', data: rows, message: 'fetch successful' });
-  //   });
-  // } catch (error) {
-  //   res.status(500).json({ status: 'error', message: error.message });
-  // }
-
-  res.status(200).json({ status: 'success', data: [], message: 'fetch successful' });
+  try {
+    const products = await Product.find();
+    res.status(200).json({ status: 'success', data: products, message: 'fetch successful' });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
 };
 
+// Get Product By Id
 exports.getByProductsById = async (req, res) => {
   try {
-    const db = req.db;
-    const productId = req.params.id;
-
-    db.get('SELECT * FROM products WHERE id = ?', [productId], (err, row) => {
-      if (err) {
-        return res.status(500).json({ status: 'error', message: err.message });
-      }
-
-      if (!row) {
-        return res.status(404).json({ status: 'error', message: 'Product not found' });
-      }
-
-      res.status(200).json({ status: 'success', data: row, message: 'fetch successful' });
-    });
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ status: 'error', message: 'Product not found' });
+    }
+    res.status(200).json({ status: 'success', data: product, message: 'fetch successful' });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
   }
@@ -42,26 +26,9 @@ exports.getByProductsById = async (req, res) => {
 // Create Product
 exports.createProduct = async (req, res) => {
   try {
-    const db = req.db;
-    const { productName, productPrice, productSKU, inStore, onlineOrder, imageUrl } = req.body;
-
-    db.run(
-      'INSERT INTO products (productName, productPrice, productSKU, inStore, onlineOrder, imageUrl) VALUES (?, ?, ?, ?, ?, ?)',
-      [productName, productPrice, productSKU, inStore, onlineOrder, imageUrl],
-      function (err) {
-        if (err) {
-          return res.status(500).json({ status: 'error', message: err.message });
-        }
-
-        db.get('SELECT * FROM products WHERE id = ?', [this.lastID], (err, row) => {
-          if (err) {
-            return res.status(500).json({ status: 'error', message: err.message });
-          }
-
-          res.status(201).json({ status: 'success', data: row, message: 'Product created successfully' });
-        });
-      }
-    );
+    const product = new Product(req.body);
+    await product.save();
+    res.status(201).json({ status: 'success', data: product, message: 'Product created successfully' });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
   }
@@ -70,144 +37,93 @@ exports.createProduct = async (req, res) => {
 // Update Product by ID
 exports.updateProductById = async (req, res) => {
   try {
-    const db = req.db;
-    const productId = req.params.id;
-    const { productName, productPrice, productSKU, inStore, onlineOrder, imageUrl } = req.body;
-
-    db.run(
-      'UPDATE products SET productName = ?, productPrice = ?, productSKU = ?, inStore = ?, onlineOrder = ?, imageUrl = ? WHERE id = ?',
-      [productName, productPrice, productSKU, inStore, onlineOrder, imageUrl, productId],
-      function (err) {
-        if (err) {
-          return res.status(500).json({ status: 'error', message: err.message });
-        }
-
-        if (this.changes === 0) {
-          return res.status(404).json({ status: 'error', message: 'Product not found' });
-        }
-
-        db.get('SELECT * FROM products WHERE id = ?', [productId], (err, row) => {
-          if (err) {
-            return res.status(500).json({ status: 'error', message: err.message });
-          }
-
-          res.status(200).json({ status: 'success', data: row, message: 'Product updated successfully' });
-        });
-      }
-    );
+    const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!product) {
+      return res.status(404).json({ status: 'error', message: 'Product not found' });
+    }
+    res.status(200).json({ status: 'success', data: product, message: 'Product updated successfully' });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
   }
 };
 
+// Delete Product by ID
 exports.deleteProductById = async (req, res) => {
   try {
-    const db = req.db;
-    const productId = req.params.id;
-
-    db.run('DELETE FROM products WHERE id = ?', [productId], function (err) {
-      if (err) {
-        return res.status(500).json({ status: 'error', message: err.message });
-      }
-
-      if (this.changes === 0) {
-        return res.status(404).json({ status: 'error', message: 'Product not found' });
-      }
-
-      res.status(200).json({ status: 'success', message: 'delete successful' });
-    });
+    const product = await Product.findByIdAndDelete(req.params.id);
+    if (!product) {
+      return res.status(404).json({ status: 'error', message: 'Product not found' });
+    }
+    res.status(200).json({ status: 'success', message: 'delete successful' });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
   }
 };
 
+// Order Product by ID
 exports.orderProductById = async (req, res) => {
   try {
-    const db = req.db;
-    const productId = req.params.id;
     const { onlineOrder, orderedQuantity } = req.body;
-
-    db.run(
-      'UPDATE products SET onlineOrder = onlineOrder + ?, orderedQuantity = orderedQuantity + ? WHERE id = ?',
-      [onlineOrder, orderedQuantity, productId],
-      function (err) {
-        if (err) {
-          return res.status(500).json({ status: 'error', message: err.message });
-        }
-
-        if (this.changes === 0) {
-          return res.status(404).json({ status: 'error', message: 'Product not found' });
-        }
-
-        db.get('SELECT * FROM products WHERE id = ?', [productId], (err, row) => {
-          if (err) {
-            return res.status(500).json({ status: 'error', message: err.message });
-          }
-
-          res.status(200).json({ status: 'success', data: row, message: 'order update successful' });
-        });
-      }
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      {
+        $inc: {
+          onlineOrder: onlineOrder,
+          orderedQuantity: orderedQuantity,
+        },
+      },
+      { new: true }
     );
+    if (!product) {
+      return res.status(404).json({ status: 'error', message: 'Product not found' });
+    }
+    res.status(200).json({ status: 'success', data: product, message: 'order update successful' });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
   }
 };
 
+// Receive Product by ID
 exports.receiveProductById = async (req, res) => {
   try {
-    const db = req.db;
-    const productId = req.params.id;
     const { orderedQuantity, inStore } = req.body;
-
-    db.run('UPDATE products SET orderedQuantity = orderedQuantity - ?, inStore = inStore + ? WHERE id = ?', [orderedQuantity, inStore, productId], function (err) {
-      if (err) {
-        return res.status(500).json({ status: 'error', message: err.message });
-      }
-
-      if (this.changes === 0) {
-        return res.status(404).json({ status: 'error', message: 'Product not found' });
-      }
-
-      db.get('SELECT * FROM products WHERE id = ?', [productId], (err, row) => {
-        if (err) {
-          return res.status(500).json({ status: 'error', message: err.message });
-        }
-
-        res.status(200).json({ status: 'success', data: row, message: 'receive update successful' });
-      });
-    });
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      {
+        $inc: {
+          orderedQuantity: -orderedQuantity,
+          inStore: inStore,
+        },
+      },
+      { new: true }
+    );
+    if (!product) {
+      return res.status(404).json({ status: 'error', message: 'Product not found' });
+    }
+    res.status(200).json({ status: 'success', data: product, message: 'receive update successful' });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
   }
 };
 
+// Cancel Order by ID
 exports.cancelOrderById = async (req, res) => {
   try {
-    const db = req.db;
-    const productId = req.params.id;
     const { orderedQuantity, onlineOrder } = req.body;
-
-    db.run(
-      'UPDATE products SET orderedQuantity = orderedQuantity - ?, onlineOrder = onlineOrder + ? WHERE id = ?',
-      [orderedQuantity, onlineOrder, productId],
-      function (err) {
-        if (err) {
-          return res.status(500).json({ status: 'error', message: err.message });
-        }
-
-        if (this.changes === 0) {
-          return res.status(404).json({ status: 'error', message: 'Product not found' });
-        }
-
-        db.get('SELECT * FROM products WHERE id = ?', [productId], (err, row) => {
-          if (err) {
-            return res.status(500).json({ status: 'error', message: err.message });
-          }
-
-          res.status(200).json({ status: 'success', data: row, message: 'cancel update successful' });
-        });
-      }
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      {
+        $inc: {
+          orderedQuantity: -orderedQuantity,
+          onlineOrder: onlineOrder,
+        },
+      },
+      { new: true }
     );
+    if (!product) {
+      return res.status(404).json({ status: 'error', message: 'Product not found' });
+    }
+    res.status(200).json({ status: 'success', data: product, message: 'cancel update successful' });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
   }

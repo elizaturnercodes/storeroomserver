@@ -4,7 +4,7 @@ const productController = require('../controller/productController');
 const { authenticateToken, authorizeRole } = require('../middleware/authMiddleware');
 
 // Get All Products
-router.get('/', productController.getAllProducts);
+router.get('/', authenticateToken, authorizeRole(['employee', 'admin']), productController.getAllProducts);
 
 // Create Product
 router.post('/', authenticateToken, authorizeRole(['employee', 'admin']), productController.createProduct);

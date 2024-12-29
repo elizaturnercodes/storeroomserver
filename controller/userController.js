@@ -1,136 +1,128 @@
-const sqlite3 = require('sqlite3').verbose();
+const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
-// Terminal commands to install required packages:
-// npm install sqlite3
-// npm install jsonwebtoken
-// npm install bcrypt
-
 // Create User
-exports.createUser = (req, res) => {
-  const { email, password, firstName, lastName, role } = req.body;
-  const hashedPassword = bcrypt.hashSync(password, 10);
-  const db = req.db;
+exports.createUser = async (req, res) => {
+  try {
+    const { email, password, firstName, lastName, role } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  db.run('INSERT INTO users (email, password, firstName, lastName, role) VALUES (?, ?, ?, ?, ?)', [email, hashedPassword, firstName, lastName, role], function (err) {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    res.status(201).json({ id: this.lastID });
-  });
+    const user = new User({
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+      role,
+    });
+
+    await user.save();
+    const { password: _, ...userData } = user.toObject();
+    res.status(201).json({ status: 'success', data: userData });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 // Get All Users
-exports.getAllUsers = (req, res) => {
-  const db = req.db;
-  db.all('SELECT * FROM users', [], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    res.status(200).json(rows);
-  });
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({}, '-password');
+    res.status(200).json({ status: 'success', data: users });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 // Read User
-exports.getUser = (req, res) => {
-  const { id } = req.params;
-
-  const db = req.db;
-
-  db.get('SELECT * FROM users WHERE id = ?', [id], (err, row) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
+exports.getUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
-    res.status(200).json(row);
-  });
+    res.status(200).json({ status: 'success', data: user });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 // Update User
-exports.updateUser = (req, res) => {
-  const { id } = req.params;
-  const { email, password, firstName, lastName, role } = req.body;
-  const hashedPassword = bcrypt.hashSync(password, 10);
-
-  const db = req.db;
-
-  db.run(
-    'UPDATE users SET email = ?, password = ?, firstName = ?, lastName = ?, role = ? WHERE id = ?',
-    [email, hashedPassword, firstName, lastName, role, id],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-
-      db.get('SELECT * FROM users WHERE id = ?', [id], (err, row) => {
-        if (err) {
-          return res.status(500).json({ error: err.message });
-        }
-        res.status(200).json(row);
-      });
+exports.updateUser = async (req, res) => {
+  try {
+    const { password, ...updateData } = req.body;
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 10);
     }
-  );
+
+    const user = await User.findByIdAndUpdate(req.params.id, updateData, { new: true }).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.status(200).json({ status: 'success', data: user });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 // Delete User
-exports.deleteUser = (req, res) => {
-  const { id } = req.params;
-
-  const db = req.db;
-
-  db.run('DELETE FROM users WHERE id = ?', [id], function (err) {
-    if (err) {
-      return res.status(500).json({ error: err.message });
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
-    res.status(200).json({ changes: this.changes });
-  });
+    res.status(200).json({ status: 'success', message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 // Register User
-exports.register = (req, res) => {
-  const { email, password, firstName, lastName, role } = req.body;
-  const hashedPassword = bcrypt.hashSync(password, 10);
+exports.register = async (req, res) => {
+  try {
+    const { email, password, firstName, lastName, role } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  const db = req.db;
+    const user = new User({
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+      role,
+    });
 
-  db.run('INSERT INTO users (email, password, firstName, lastName, role) VALUES (?, ?, ?, ?, ?)', [email, hashedPassword, firstName, lastName, role], function (err) {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    const token = jwt.sign({ id: this.lastID }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    await user.save();
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
 
-    db.get('SELECT * FROM users WHERE id = ?', [this.lastID], (err, row) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-
-      const { password: _, ...userData } = row; // Exclude password from user data
-      res.status(201).json({ message: 'Register successful', user: userData });
-    });
-  });
+    const { password: _, ...userData } = user.toObject();
+    res.status(201).json({ message: 'Register successful', user: userData });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 // Login User
-exports.login = (req, res) => {
-  const { email, password } = req.body;
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
 
-  const db = req.db;
-
-  db.get('SELECT * FROM users WHERE email = ?', [email], (err, row) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    if (!row || !bcrypt.compareSync(password, row.password)) {
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    const token = jwt.sign({ id: row.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'none' });
 
-    const { password: _, ...userData } = row; // Exclude password from user data
+    const { password: _, ...userData } = user.toObject();
     res.status(200).json({ status: 'success', message: 'Login successful', user: userData });
-  });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 // Logout User
