@@ -1,19 +1,21 @@
 const sqlite3 = require('sqlite3').verbose();
 
 exports.getAllProducts = async (req, res) => {
-  try {
-    const db = req.db;
+  // try {
+  //   const db = req.db;
 
-    db.all('SELECT * FROM products', [], (err, rows) => {
-      if (err) {
-        return res.status(500).json({ status: 'error', message: err.message });
-      }
+  //   db.all('SELECT * FROM products', [], (err, rows) => {
+  //     if (err) {
+  //       return res.status(500).json({ status: 'error', message: err.message });
+  //     }
 
-      res.status(200).json({ status: 'success', data: rows, message: 'fetch successful' });
-    });
-  } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
-  }
+  //     res.status(200).json({ status: 'success', data: rows, message: 'fetch successful' });
+  //   });
+  // } catch (error) {
+  //   res.status(500).json({ status: 'error', message: error.message });
+  // }
+
+  res.status(200).json({ status: 'success', data: [], message: 'fetch successful' });
 };
 
 exports.getByProductsById = async (req, res) => {
