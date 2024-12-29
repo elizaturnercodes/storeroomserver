@@ -15,7 +15,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: 'https://storeroomamu.netlify.app/',
+    origin: 'https://storeroomamu.netlify.app',
     credentials: true,
   })
 );
@@ -33,40 +33,15 @@ db.serialize(() => {
   );
 
   // Add the new column if it doesn't exist
-  // db.all('PRAGMA table_info(products)', (err, columns) => {
-  //   if (err) {
-  //     console.error('Error checking products table columns', err.message);
-  //   } else {
-  //     const columnNames = columns.map((column) => column.name);
-  //     if (!columnNames.includes('orderedQuantity')) {
-  //       db.run('ALTER TABLE products ADD COLUMN orderedQuantity INTEGER NOT NULL DEFAULT 0', (err) => {
-  //         if (err) {
-  //           console.error('Error adding orderedQuantity column', err.message);
-  //         } else {
-  //           console.log('orderedQuantity column added to products table');
-  //         }
-  //       });
-  //     }
-  //   }
-  // });
-
-  // db.all('PRAGMA table_info(products)', (err, columns) => {
-  //   if (err) {
-  //     console.error('Error checking products table columns', err.message);
-  //   } else {
-  //     const columnNames = columns.map((column) => column.name);
-  //     if (!columnNames.includes('imageUrl')) {
-  //       db.run('ALTER TABLE products ADD COLUMN imageUrl TEXT', (err) => {
-  //         if (err) {
-  //           console.error('Error adding imageUrl column', err.message);
-  //         } else {
-  //           console.log('imageUrl column added to products table');
-  //         }
-  //       });
-  //     }
-  //   }
-  // });
+  db.run('ALTER TABLE products ADD COLUMN IF NOT EXISTS imageUrl TEXT', (err) => {
+    if (err) {
+      console.error('Error adding imageUrl column', err.message);
+    } else {
+      console.log('imageUrl column added or already exists');
+    }
+  });
 });
+
 db.run(
   'CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, password TEXT, firstName TEXT, lastName TEXT, role TEXT CHECK(role IN ("admin", "employee")))',
   (err) => {
@@ -88,4 +63,7 @@ app.use('/api', routes);
 const userRoutes = require('./routes/userRoutes');
 app.use('/users', userRoutes);
 
-module.exports = app;
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
