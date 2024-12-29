@@ -1,6 +1,5 @@
 const express = require('express');
 const routes = require('./routes/routes.js');
-const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
@@ -21,24 +20,16 @@ app.use(cookieParser());
 //   })
 // );
 
-app.options('*', cors());
-
+// CORS configuration
 app.use(
   cors({
-    origin: 'https://storeroomamu.netlify.app',
+    origin: ['https://storeroomamu.netlify.app', 'https://storeroomserver.vercel.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-    maxAge: 86400, // 24 hours in seconds
+    maxAge: 86400,
   })
 );
-
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'https://storeroomamu.netlify.app');
-  res.header('Access-Control-Allow-Credentials', true);
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  next();
-});
 
 app.use('/api', routes);
 
