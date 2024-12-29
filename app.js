@@ -23,7 +23,7 @@ app.use(cookieParser());
 // CORS configuration
 app.use(
   cors({
-    origin: ['https://storeroomclient.vercel.app', 'https://storeroomamu.netlify.app/', 'https://storeroomserver.vercel.app'],
+    origin: ['https://storeroomclient.vercel.app', 'https://storeroomserver.vercel.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
