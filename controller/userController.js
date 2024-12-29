@@ -96,7 +96,13 @@ exports.register = async (req, res) => {
     await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/', // Optional but recommended
+      maxAge: 24 * 60 * 60 * 1000, // Optional: sets expiry to 24 hours
+    });
 
     const { password: _, ...userData } = user.toObject();
     res.status(201).json({ message: 'Register successful', user: userData });
@@ -116,7 +122,13 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'none' });
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/', // Optional but recommended
+      maxAge: 24 * 60 * 60 * 1000, // Optional: sets expiry to 24 hours
+    });
 
     const { password: _, ...userData } = user.toObject();
     res.status(200).json({ status: 'success', message: 'Login successful', user: userData });
