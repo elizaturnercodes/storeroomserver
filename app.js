@@ -15,7 +15,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: 'http://localhost:5173',
+    origin: 'https://storeroomserver.vercel.app/',
     credentials: true,
   })
 );
